@@ -1,0 +1,41 @@
+[
+  {
+    "type": "line",
+    "mode": "vertical",
+    "scaleID": "x-axis-0",
+    "value": "24/10",
+    "borderColor": "black",
+    "borderWidth": 2,
+    "label": {
+      "enabled": true,
+      "fontColor": "orange",
+      "content": "DPCM - 24/10"
+    }
+  },
+  {
+    "type": "line",
+    "mode": "vertical",
+    "scaleID": "x-axis-0",
+    "value": "03/11",
+    "borderColor": "black",
+    "borderWidth": 2,
+    "label": {
+      "enabled": true,
+      "fontColor": "orange",
+      "content": "DPCM - 03/11"
+    }
+  },
+  {
+    "type": "line",
+    "mode": "vertical",
+    "scaleID": "x-axis-0",
+    "value": "03/12",
+    "borderColor": "black",
+    "borderWidth": 2,
+    "label": {
+      "enabled": true,
+      "fontColor": "orange",
+      "content": "DPCM - 03/12"
+    }
+  }
+]
