@@ -28,7 +28,7 @@ switch($method) {
     case 'POST':
         $value = $_POST['Annotation_sValue'];
         $content = $_POST['Annotation_sContent'];    
-        $token = getBearerToken();    
+        $token = getBearerToken();
         try {
             $query = "SELECT User_iId FROM tblUsers WHERE User_sToken = ?";
             $stmt = $dbh->prepare($query);
@@ -73,7 +73,7 @@ switch($method) {
     break;
     case 'DELETE':
     break;
-    default:
+    case 'GET':
         if (isset($_GET['task']) && $_GET['task'] == 'backend') {
             try {
                 $query = "SELECT Annotation_iId, Annotation_sValue, Annotation_sContent FROM tblAnnotations";
