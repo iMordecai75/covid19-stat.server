@@ -7,23 +7,27 @@ header("Access-Control-Allow-Methods: GET, POST, PATCH, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: *");
 header('Content-Type: application/json');
 
+require_once '../classes/AuthResponse.php';
+
 /*CONN DB*/
 $host = 'localhost';
 $dbname = 'covid19';
 $user = 'root';
 $pass = 'root';
 
+$response = new AuthResponse();
+
 try {
     $dbh = new PDO("mysql:host = $host;dbname=$dbname", $user, $pass);
     $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    $response["msg"] = 'Errore connessione al database !' . $e->getMessage();
-    $response["error"] = 1;
-    echo json_encode($response);
+    $response->msg = 'Errore connessione al database !' . $e->getMessage();
+    $response->error = 1;
+    echo $response->toJson();
     die();
 }
-
 /*END CONN DB*/
+
 $json = trim(file_get_contents('php://input'));
 $input = json_decode(preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $json), true);
 //Make sure that it is a POST request.
@@ -54,9 +58,9 @@ if (isset($username) and isset($password)) {
     // Create JWT
     $jwt = $base64UrlHeader . "." . $base64UrlPayload . "." . $base64UrlSignature;
 } else {
-    $response["msg"] = "Credenziali mancanti";
-    $response["error"] = 1;
-    echo json_encode($response);
+    $response->msg  = "Credenziali mancanti";
+    $response->error = 1;
+    echo $response->toJson();
     exit();
 }
 
@@ -65,9 +69,9 @@ try {
     $stmt = $dbh->prepare($sql);
     $stmt->execute([$jwt, $username, $password]);
 } catch (PDOException $e) {
-    $response["msg"] = $e->getMessage();
-    $response["error"] = 1;
-    echo json_encode($response);
+    $response->msg = $e->getMessage();
+    $response->error = 1;
+    echo $response->toJson();
     exit();
 }
 
@@ -75,18 +79,19 @@ try {
     $sql = 'SELECT User_sToken, User_iScadenza FROM tblUsers WHERE User_sUsername = :username AND User_sPassword = :password';
     $stmt = $dbh->prepare($sql);
     $stmt->execute(array('username' => $username, 'password' => $password));
-    $rows = $stmt->fetch(PDO::FETCH_ASSOC);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
     $num_rows = $stmt->rowCount();
 } catch (PDOException $e) {
-    $response["msg"] = 'Errore select tabella !' . $e->getMessage();
-    $response["error"] = 1;
-    echo json_encode($response);
+    $response->msg = 'Errore select tabella !' . $e->getMessage();
+    $response->error = 1;
+    echo $response->toJson();
     die();
 }
 if ($num_rows == 1) {
-    echo json_encode($rows);
+    $response->bind($row);
+    echo $response->toJson();
 } else {
-    $response["msg"] = "Credenziali errate";
-    $response["error"] = 1;
-    echo json_encode($response);
+    $response->msg = "Credenziali errate";
+    $response->error = 1;
+    echo $response->toJson();
 }
