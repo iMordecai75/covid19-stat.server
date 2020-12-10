@@ -74,34 +74,41 @@ switch($method) {
     case 'DELETE':
     break;
     case 'GET':
+        try {
+            $query = "SELECT Annotation_iId, Annotation_sValue, Annotation_sContent FROM tblAnnotations";
+
+            $stmt = $dbh->prepare($query);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (PDOException $th) {
+            $result = array(
+                'status' => 'KO',
+                'error' => $th->getMessage()
+            );
+            echo json_encode($result);
+        }
         if (isset($_GET['task']) && $_GET['task'] == 'backend') {
-            try {
-                $query = "SELECT Annotation_iId, Annotation_sValue, Annotation_sContent FROM tblAnnotations";
-
-                $stmt = $dbh->prepare($query);
-                $stmt->execute();
-                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                echo json_encode($rows);
-            } catch (PDOException $th) {
-                $result = array(
-                    'status' => 'KO',
-                    'error' => $th->getMessage()
-                );
-                echo json_encode($result);
-            }
+            echo json_encode($rows);
         } else {
-            try {
-                $result = Connection::cURLdownload('/annotations.json', 'http://www.federicomasci.com/angular/covid19/data');
+            $result = array();
+            foreach($rows as $row) {
+                $tmp = new stdClass();
+                $tmp->type = "line";
+                $tmp->mode = "vertical";
+                $tmp->scaleID = "x-axis-0";
+                $tmp->value = $row['Annotation_sValue'];
+                $tmp->borderColor = "black";
+                $tmp->borderWidth = 2;
+                $tmp->label = new stdClass();
+                $tmp->label->enabled = true;
+                $tmp->label->fontColor = "orange";
+                $tmp->label->content = $row['Annotation_sContent'];
 
-                echo $result;
-            } catch (\Throwable $th) {
-                $result = array(
-                    'status' => 'KO',
-                    'error' => $th->getMessage()
-                );
-                echo json_encode($result);
+                $result[] = $tmp;
             }
+
+            echo json_encode($result);
         }
 
     break;
