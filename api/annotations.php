@@ -6,21 +6,22 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT,DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization");
 header("Content-Type: application/json; charset=UTF-8");
+require_once 'classes/ApiResponse.php';
 require_once 'utilities/connection.php';
 require_once 'utilities/dbconn.php';
 require_once 'utilities/utilities.php';
 
+$response = new ApiResponse();
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
     $dbh = new PDO("mysql:host = $host;dbname=$dbname", $user, $pass);
     $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    $result = array(
-        'status' => 'KO',
-        'error' => $e->getMessage()
-    );
-    echo json_encode($result);
+    $response->status = 'KO';
+    $response->msg = $th->getMessage();
+
+    echo $response->toJson();
     die();
 }
 
@@ -36,11 +37,11 @@ switch($method) {
 
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $th) {
-            $result = array(
-                'status' => 'KO',
-                'error' => $th->getMessage()
-            );
-            echo json_encode($result);
+            $response->status = 'KO';
+            $response->msg = $th->getMessage();
+
+            echo $response->toJson();
+            exit;
         }
         if($row['User_iId'] > 0) {
             try {
@@ -53,20 +54,21 @@ switch($method) {
                 $tmp['Annotation_sValue'] = $value;
                 $tmp['Annotation_sContent'] = $content;
 
-                echo json_encode($tmp);
+                $response->status = 'OK';
+                $response->item = $tmp;
+
+                echo $response->toJson();
             } catch (PDOException $th) {
-                $result = array(
-                    'status' => 'KO',
-                    'error' => $th->getMessage()
-                );
-                echo json_encode($result);
+                $response->status = 'KO';
+                $response->msg = $th->getMessage();
+
+                echo $response->toJson();
             }
         } else {
-            $result = array(
-                'status' => 'KO',
-                'error' => 'Token errato o mancante'
-            );
-            echo json_encode($result);
+            $response->status = 'KO';
+            $response->msg = $th->getMessage();
+
+            echo $response->toJson();
         }
     break;
     case 'PATCH':
@@ -82,14 +84,17 @@ switch($method) {
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         } catch (PDOException $th) {
-            $result = array(
-                'status' => 'KO',
-                'error' => $th->getMessage()
-            );
-            echo json_encode($result);
+            $response->status = 'KO';
+            $response->msg = $th->getMessage();
+
+            echo $response->toJson();
+            exit;
         }
         if (isset($_GET['task']) && $_GET['task'] == 'backend') {
-            echo json_encode($rows);
+            $response->status = 'OK';
+            $response->items = $rows;
+
+            echo $response->toJson();
         } else {
             $result = array();
             foreach($rows as $row) {
@@ -108,7 +113,10 @@ switch($method) {
                 $result[] = $tmp;
             }
 
-            echo json_encode($result);
+            $response->status = 'OK';
+            $response->items = $result;
+
+            echo $response->toJson();
         }
 
     break;
