@@ -12,6 +12,9 @@ require_once 'utilities/dbconn.php';
 require_once 'utilities/utilities.php';
 
 $response = new ApiResponse();
+$json = trim(file_get_contents('php://input'));
+parse_str($json, $input);
+
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
@@ -25,53 +28,118 @@ try {
     die();
 }
 
+$token = getBearerToken();
+if(empty($token)) {
+    try {
+        $query = "SELECT Annotation_iId, Annotation_sValue, Annotation_sContent FROM tblAnnotations";
+        $stmt = $dbh->prepare($query);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $result = array();
+        foreach ($rows as $row) {
+            $tmp = new stdClass();
+            $tmp->type = "line";
+            $tmp->mode = "vertical";
+            $tmp->scaleID = "x-axis-0";
+            $tmp->value = $row['Annotation_sValue'];
+            $tmp->borderColor = "black";
+            $tmp->borderWidth = 2;
+            $tmp->label = new stdClass();
+            $tmp->label->enabled = true;
+            $tmp->label->fontColor = "orange";
+            $tmp->label->content = $row['Annotation_sContent'];
+
+            $result[] = $tmp;
+        }
+
+        $response->status = 'OK';
+        $response->items = $result;
+
+        echo $response->toJson();
+        exit;
+    } catch (PDOException $th) {
+        $response->status = 'KO';
+        $response->msg = $th->getMessage();
+
+        echo $response->toJson();
+        exit;
+    }
+}
+
+try {
+    $query = "SELECT User_iId FROM tblUsers WHERE User_sToken = ?";
+    $stmt = $dbh->prepare($query);
+    $stmt->execute([$token]);
+
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!($user['User_iId'] > 0)) {
+        $response->status = 'KO';
+        $response->msg = $th->getMessage();
+
+        echo $response->toJson();
+        exit;
+    }
+
+} catch (PDOException $th) {
+    $response->status = 'KO';
+    $response->msg = $th->getMessage();
+
+    echo $response->toJson();
+    exit;
+}
+
 switch($method) {
     case 'POST':
         $value = $_POST['Annotation_sValue'];
-        $content = $_POST['Annotation_sContent'];    
-        $token = getBearerToken();
-        try {
-            $query = "SELECT User_iId FROM tblUsers WHERE User_sToken = ?";
-            $stmt = $dbh->prepare($query);
-            $stmt->execute([$token]);
+        $content = $_POST['Annotation_sContent'];  
 
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (PDOException $th) {
-            $response->status = 'KO';
-            $response->msg = $th->getMessage();
+        try {
+            $query = "INSERT INTO tblAnnotations (Annotation_sValue, Annotation_sContent) VALUES (?, ?)";
+            $stmt = $dbh->prepare($query);
+            $stmt->execute([$value, $content]);
+            $id = $dbh->lastInsertId();
+            $tmp = array();
+            $tmp['Annotation_iId'] = $id;
+            $tmp['Annotation_sValue'] = $value;
+            $tmp['Annotation_sContent'] = $content;
+
+            $response->status = 'OK';
+            $response->item = $tmp;
 
             echo $response->toJson();
-            exit;
-        }
-        if($row['User_iId'] > 0) {
-            try {
-                $query = "INSERT INTO tblAnnotations (Annotation_sValue, Annotation_sContent) VALUES (?, ?)";
-                $stmt = $dbh->prepare($query);
-                $stmt->execute([$value, $content]);
-                $id = $dbh->lastInsertId();
-                $tmp = array();
-                $tmp['Annotation_iId'] = $id;
-                $tmp['Annotation_sValue'] = $value;
-                $tmp['Annotation_sContent'] = $content;
-
-                $response->status = 'OK';
-                $response->item = $tmp;
-
-                echo $response->toJson();
-            } catch (PDOException $th) {
-                $response->status = 'KO';
-                $response->msg = $th->getMessage();
-
-                echo $response->toJson();
-            }
-        } else {
+        } catch (PDOException $th) {
             $response->status = 'KO';
             $response->msg = $th->getMessage();
 
             echo $response->toJson();
         }
     break;
-    case 'PATCH':
+    case 'PUT':        
+        $id = $input['Annotation_iId'];
+        $value = $input['Annotation_sValue'];
+        $content = $input['Annotation_sContent'];
+
+        try {
+            $query = "UPDATE tblAnnotations SET Annotation_sValue = ?, Annotation_sContent = ? WHERE Annotation_iId = ?";
+            $stmt = $dbh->prepare($query);
+            $stmt->execute([$value, $content, (int)$id]);
+            $tmp = array();
+            $tmp['Annotation_iId'] = $id;
+            $tmp['Annotation_sValue'] = $value;
+            $tmp['Annotation_sContent'] = $content;
+
+            $response->status = 'OK';
+            $response->item = $tmp;
+
+            echo $response->toJson();
+        } catch (PDOException $th) {
+            $response->status = 'KO';
+            $response->msg = $th->getMessage();
+
+            echo $response->toJson();
+        }
     break;
     case 'DELETE':
     break;
@@ -100,6 +168,11 @@ switch($method) {
                 $stmt = $dbh->prepare($query);
                 $stmt->execute();
                 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $response->status = 'OK';
+                $response->items = $rows;
+
+                echo $response->toJson();
             } catch (PDOException $th) {
                 $response->status = 'KO';
                 $response->msg = $th->getMessage();
@@ -107,35 +180,6 @@ switch($method) {
                 echo $response->toJson();
                 exit;
             }
-            if (isset($_GET['task']) && $_GET['task'] == 'backend') {
-                $response->status = 'OK';
-                $response->items = $rows;
-
-                echo $response->toJson();
-            } else {
-                $result = array();
-                foreach ($rows as $row) {
-                    $tmp = new stdClass();
-                    $tmp->type = "line";
-                    $tmp->mode = "vertical";
-                    $tmp->scaleID = "x-axis-0";
-                    $tmp->value = $row['Annotation_sValue'];
-                    $tmp->borderColor = "black";
-                    $tmp->borderWidth = 2;
-                    $tmp->label = new stdClass();
-                    $tmp->label->enabled = true;
-                    $tmp->label->fontColor = "orange";
-                    $tmp->label->content = $row['Annotation_sContent'];
-
-                    $result[] = $tmp;
-                }
-
-                $response->status = 'OK';
-                $response->items = $result;
-
-                echo $response->toJson();
-            }
-
         }
     break;
 }
