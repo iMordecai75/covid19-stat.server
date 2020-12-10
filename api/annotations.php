@@ -142,6 +142,22 @@ switch($method) {
         }
     break;
     case 'DELETE':
+        $id = $_GET['id'];
+        
+        try {
+            $query = "DELETE FROM tblAnnotations WHERE Annotation_iId = ?";
+            $stmt = $dbh->prepare($query);
+            $stmt->execute([$id]);
+
+            $response->status = 'OK';
+
+            echo $response->toJson();
+        } catch (PDOException $th) {
+            $response->status = 'KO';
+            $response->msg = $th->getMessage();
+
+            echo $response->toJson();
+        }
     break;
     case 'GET':
         if (isset($_GET['id']) && $_GET['id'] > 0) {
