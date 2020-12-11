@@ -4,6 +4,7 @@ $dbname = 'Sql319510_4';
 $user = 'Sql319510';
 $pass = 'a296210b';
 
+
 $host = 'localhost';
 $dbname = 'covid19';
 $user = 'root';

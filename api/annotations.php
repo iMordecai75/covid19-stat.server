@@ -18,11 +18,11 @@ parse_str($json, $input);
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
-    $dbh = new PDO("mysql:host = $host;dbname=$dbname", $user, $pass);
+    $dbh = new PDO("mysql:host=$host;dbname=$dbname", $user, $pass);
     $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     $response->status = 'KO';
-    $response->msg = $th->getMessage();
+    $response->msg = $e->getMessage();
 
     echo $response->toJson();
     die();
